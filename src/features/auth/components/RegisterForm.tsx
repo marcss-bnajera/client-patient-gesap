@@ -3,29 +3,56 @@ import { Link, useNavigate } from "react-router-dom";
 import imgLogo from "../../../assets/img/GESAPLogo.svg";
 import {
   FiMail, FiLock, FiEye, FiEyeOff,
-  FiCreditCard, FiLoader, FiArrowLeft,
+  FiCreditCard, FiLoader, FiArrowLeft, FiCheckCircle,
 } from "react-icons/fi";
 import { registerApi } from "../../../shared/api/auth";
 import toast from "react-hot-toast";
 
+const validateDpi       = (v: string) => /^\d{13}$/.test(v) ? "" : "El DPI debe tener exactamente 13 dígitos";
+const validateEmail     = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? "" : "Correo electrónico inválido";
+const validatePassword  = (v: string) => {
+  if (v.length < 8)          return "Mínimo 8 caracteres";
+  if (!/[A-Z]/.test(v))      return "Debe incluir al menos una mayúscula";
+  if (!/\d/.test(v))         return "Debe incluir al menos un número";
+  return "";
+};
+const validateConfirm   = (pass: string, confirm: string) => pass !== confirm ? "Las contraseñas no coinciden" : "";
+
 export const RegisterForm: React.FC = () => {
-  const [showPass, setShowPass] = useState(false);
-  const [dpi, setDpi] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [showPass, setShowPass]       = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [dpi, setDpi]                 = useState("");
+  const [email, setEmail]             = useState("");
+  const [password, setPassword]       = useState("");
+  const [confirm, setConfirm]         = useState("");
+  const [loading, setLoading]         = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const [touched, setTouched] = useState({ dpi: false, email: false, password: false, confirm: false });
+
+  const errors = {
+    dpi:      validateDpi(dpi),
+    email:    validateEmail(email),
+    password: validatePassword(password),
+    confirm:  validateConfirm(password, confirm),
+  };
+
+  const isValid = Object.values(errors).every((e) => !e) && dpi && email && password && confirm;
+
+  const touch = (field: keyof typeof touched) =>
+    setTouched((t) => ({ ...t, [field]: true }));
+
+  const fieldCls = (field: keyof typeof errors) => {
+    if (!touched[field]) return "border-blue-200 focus:ring-[#00ACC1]";
+    return errors[field]
+      ? "border-red-300 focus:ring-red-300"
+      : "border-emerald-400 focus:ring-emerald-400";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{13}$/.test(dpi)) {
-      toast.error("El DPI debe tener exactamente 13 dígitos");
-      return;
-    }
-    if (password.length < 8 || !/[A-Z]/.test(password) || !/\d/.test(password)) {
-      toast.error("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número");
-      return;
-    }
+    setTouched({ dpi: true, email: true, password: true, confirm: true });
+    if (!isValid) return;
     setLoading(true);
     try {
       await registerApi({ dpi, email, password });
@@ -33,9 +60,7 @@ export const RegisterForm: React.FC = () => {
       navigate("/login");
     } catch (err: unknown) {
       const msg =
-        typeof err === "object" &&
-        err !== null &&
-        "response" in err &&
+        typeof err === "object" && err !== null && "response" in err &&
         typeof (err as { response?: { data?: { message?: string } } }).response?.data?.message === "string"
           ? (err as { response: { data: { message: string } } }).response.data.message
           : "Error al crear la cuenta";
@@ -44,6 +69,8 @@ export const RegisterForm: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const inputBase = "w-full py-3 text-sm bg-[#EBF5FB] border rounded-xl text-[#0A2647] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:border-transparent transition-all";
 
   return (
     <div className="min-h-screen bg-[#EBF5FB] flex items-center justify-center p-6">
@@ -71,7 +98,7 @@ export const RegisterForm: React.FC = () => {
             {/* DPI */}
             <div>
               <label className="block text-xs font-semibold text-[#144272] mb-2 uppercase tracking-wide">
-                DPI (13 dígitos)
+                DPI (13 dígitos) *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -81,22 +108,25 @@ export const RegisterForm: React.FC = () => {
                   type="text"
                   value={dpi}
                   onChange={(e) => setDpi(e.target.value.replace(/\D/g, "").slice(0, 13))}
+                  onBlur={() => touch("dpi")}
                   placeholder="0000000000000"
-                  required
                   maxLength={13}
-                  className="w-full pl-10 pr-4 py-3 text-sm bg-[#EBF5FB] border border-blue-200 rounded-xl
-                    text-[#0A2647] placeholder:text-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-[#00ACC1] focus:border-transparent
-                    transition-all"
+                  className={`${inputBase} ${fieldCls("dpi")} pl-10 pr-9`}
                 />
+                {touched.dpi && !errors.dpi && (
+                  <FiCheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" size={15} />
+                )}
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">{dpi.length}/13 dígitos</p>
+              {touched.dpi && errors.dpi
+                ? <p className="text-red-500 text-[11px] mt-1">{errors.dpi}</p>
+                : <p className="text-slate-400 text-[11px] mt-1">{dpi.length}/13 dígitos</p>
+              }
             </div>
 
             {/* Email */}
             <div>
               <label className="block text-xs font-semibold text-[#144272] mb-2 uppercase tracking-wide">
-                Correo Electrónico
+                Correo Electrónico *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -106,20 +136,23 @@ export const RegisterForm: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onBlur={() => touch("email")}
                   placeholder="tu@correo.com"
-                  required
-                  className="w-full pl-10 pr-4 py-3 text-sm bg-[#EBF5FB] border border-blue-200 rounded-xl
-                    text-[#0A2647] placeholder:text-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-[#00ACC1] focus:border-transparent
-                    transition-all"
+                  className={`${inputBase} ${fieldCls("email")} pl-10 pr-9`}
                 />
+                {touched.email && !errors.email && (
+                  <FiCheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500" size={15} />
+                )}
               </div>
+              {touched.email && errors.email && (
+                <p className="text-red-500 text-[11px] mt-1">{errors.email}</p>
+              )}
             </div>
 
             {/* Password */}
             <div>
               <label className="block text-xs font-semibold text-[#144272] mb-2 uppercase tracking-wide">
-                Contraseña
+                Contraseña *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -129,12 +162,9 @@ export const RegisterForm: React.FC = () => {
                   type={showPass ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onBlur={() => touch("password")}
                   placeholder="••••••••"
-                  required
-                  className="w-full pl-10 pr-10 py-3 text-sm bg-[#EBF5FB] border border-blue-200 rounded-xl
-                    text-[#0A2647] placeholder:text-slate-400
-                    focus:outline-none focus:ring-2 focus:ring-[#00ACC1] focus:border-transparent
-                    transition-all"
+                  className={`${inputBase} ${fieldCls("password")} pl-10 pr-10`}
                 />
                 <button
                   type="button"
@@ -144,7 +174,40 @@ export const RegisterForm: React.FC = () => {
                   {showPass ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 mt-1">Mín. 8 caracteres, una mayúscula y un número.</p>
+              {touched.password && errors.password
+                ? <p className="text-red-500 text-[11px] mt-1">{errors.password}</p>
+                : <p className="text-slate-400 text-[11px] mt-1">Mín. 8 caracteres, una mayúscula y un número.</p>
+              }
+            </div>
+
+            {/* Confirm password */}
+            <div>
+              <label className="block text-xs font-semibold text-[#144272] mb-2 uppercase tracking-wide">
+                Confirmar Contraseña *
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                  <FiLock className="text-[#0E6BA8]" size={16} />
+                </div>
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  onBlur={() => touch("confirm")}
+                  placeholder="••••••••"
+                  className={`${inputBase} ${fieldCls("confirm")} pl-10 pr-10`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-[#0E6BA8] transition-colors"
+                >
+                  {showConfirm ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
+              </div>
+              {touched.confirm && errors.confirm && (
+                <p className="text-red-500 text-[11px] mt-1">{errors.confirm}</p>
+              )}
             </div>
 
             {/* Info box */}
@@ -154,17 +217,14 @@ export const RegisterForm: React.FC = () => {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !isValid}
               className="w-full py-3 bg-gradient-to-r from-[#0A2647] to-[#0E6BA8] hover:from-[#144272] hover:to-[#00ACC1]
                 text-white font-semibold text-sm rounded-xl shadow-lg shadow-blue-900/25
                 transition-all duration-200 hover:shadow-xl active:scale-[0.98]
                 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
-                <>
-                  <FiLoader className="animate-spin" size={16} />
-                  Creando cuenta...
-                </>
+                <><FiLoader className="animate-spin" size={16} /> Creando cuenta...</>
               ) : (
                 "Crear cuenta"
               )}
