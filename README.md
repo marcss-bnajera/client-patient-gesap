@@ -1,73 +1,77 @@
-# React + TypeScript + Vite
+# client-patient-gesap
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Portal de pacientes del Sistema GESAP. Permite a los pacientes registrarse, consultar su expediente médico, gestionar contactos de emergencia y usar el asistente de IA.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 18 + TypeScript
+- Vite + Tailwind CSS v4
+- Zustand (estado global, persistido en localStorage)
+- Axios (cliente HTTP)
+- React Router v6
 
-## React Compiler
+## Puerto de desarrollo
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+http://localhost:5176
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Instalación y desarrollo
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+pnpm install    # o npm install
+pnpm dev        # http://localhost:5176
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Requiere que **gesap-patient-portal** esté corriendo en `localhost:3002`.
+
+## Páginas disponibles
+
+| Ruta | Descripción |
+|------|-------------|
+| `/register` | Registro de nueva cuenta (libre, sin verificación DPI) |
+| `/login` | Inicio de sesión |
+| `/dashboard` | Resumen del perfil y estado de la cuenta |
+| `/profile` | Consulta y edición del perfil |
+| `/emergency-contacts` | Gestión de contactos de emergencia (máx. 5) |
+| `/history` | Historial de expedientes médicos y tratamientos |
+| `/my-emergencies` | Emergencias en las que el paciente fue atendido |
+| `/ai` | Asistente médico con IA (Groq / Llama 3) |
+
+## Proxy de desarrollo (Vite)
+
+No requiere `.env` — el proxy de Vite redirige automáticamente:
+
+| Path | Destino |
+|------|---------|
+| `/gesap-portal/v1/*` | `http://localhost:3002` (gesap-patient-portal) |
+
+## Build de producción
+
+```bash
+pnpm build
+# Genera dist/ con base en / (raíz del dominio gesap.lat)
+# Copiar a www/client-patient/ en el servidor para que nginx lo sirva
+```
+
+## Flujo de registro
+
+1. El paciente se registra con DPI y correo — cuenta queda en estado `PENDING`
+2. Un auditor aprueba la cuenta desde el panel de auditoría (`/auditor/mantenimiento`)
+3. El paciente puede iniciar sesión una vez aprobado
+
+## Estructura principal
+
+```
+src/
+├── features/
+│   ├── auth/               # Login, Register, ProtectedRoute
+│   ├── profile/
+│   ├── emergency-contacts/
+│   ├── history/
+│   ├── my-emergencies/
+│   └── ai/
+└── shared/
+    ├── api/                # Cliente axios + funciones por módulo
+    └── components/layouts/ # MainLayout, Sidebar, Navbar (responsive)
 ```
