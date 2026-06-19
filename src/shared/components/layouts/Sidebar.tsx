@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import imgLogo from "../../../assets/img/GESAPLogo.svg";
 import {
   FiHome, FiUser, FiPhone, FiClipboard,
-  FiActivity, FiDroplet, FiAlertCircle, FiLogOut,
+  FiActivity, FiDroplet, FiAlertCircle, FiLogOut, FiX,
 } from "react-icons/fi";
 import { useAuthStore } from "../../../features/auth/store/authStore";
 import toast from "react-hot-toast";
@@ -17,7 +17,12 @@ const navItems = [
   { path: "/mis-emergencias",       icon: FiAlertCircle,label: "Mis Emergencias" },
 ];
 
-export const Sidebar = () => {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
 
@@ -38,16 +43,29 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className="w-64 min-h-screen bg-gradient-to-b from-[#0A2647] to-[#0D3B6E] flex flex-col shadow-2xl shrink-0">
+    <aside className={`
+      fixed inset-y-0 left-0 z-50 w-64
+      lg:static lg:z-auto lg:translate-x-0
+      transform transition-transform duration-300 ease-in-out
+      ${isOpen ? "translate-x-0" : "-translate-x-full"}
+      bg-gradient-to-b from-[#0A2647] to-[#0D3B6E] flex flex-col shadow-2xl shrink-0
+    `}>
       {/* Header */}
       <div className="flex items-center gap-3 px-5 py-6 border-b border-white/10">
         <div className="bg-white/10 border border-white/15 p-2.5 rounded-xl">
           <img src={imgLogo} alt="GESAP" className="h-7 w-7 object-contain brightness-0 invert" />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-white font-bold text-base leading-tight tracking-tight">GESAP</h1>
           <p className="text-blue-300 text-xs font-medium">Portal Paciente</p>
         </div>
+        <button
+          onClick={onClose}
+          className="lg:hidden text-white/60 hover:text-white p-1 rounded-lg transition-colors"
+          aria-label="Cerrar menú"
+        >
+          <FiX size={20} />
+        </button>
       </div>
 
       {/* Label */}
